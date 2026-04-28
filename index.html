@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PWA Manifest Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: '#6366f1'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .tab-active { @apply border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400; }
+    .code-block { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; }
+    input[type="color"] { -webkit-appearance: none; padding: 0; border: none; }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200">
+
+  <!-- Header -->
+  <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h1 class="text-lg font-semibold">PWA Manifest Generator</h1>
+      </div>
+      <button id="themeToggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" aria-label="Toggle theme">
+        <svg id="iconSun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <svg id="iconMoon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+      <!-- Left: Input Form -->
+      <div class="space-y-6">
+
+        <!-- App Icon Upload -->
+        <section class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-4">App Icon</h2>
+          <div id="dropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors relative">
+            <input type="file" id="iconInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+            <div id="dropPlaceholder">
+              <svg class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">Drop image here or <span class="text-indigo-500 font-medium">browse</span></p>
+              <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">PNG, JPG, SVG — minimum 512×512px recommended</p>
+            </div>
+            <div id="iconPreview" class="hidden flex flex-col items-center gap-3">
+              <img id="iconPreviewImg" src="" alt="Preview" class="w-24 h-24 rounded-xl object-cover shadow-md" />
+              <p id="iconPreviewName" class="text-sm text-gray-500 dark:text-gray-400"></p>
+              <p class="text-xs text-indigo-500 cursor-pointer hover:underline" onclick="resetIcon()">Change image</p>
+            </div>
+          </div>
+          <!-- Icon size preview -->
+          <div id="iconSizes" class="hidden mt-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Generated sizes:</p>
+            <div class="flex flex-wrap gap-2" id="sizePreviewList"></div>
+          </div>
+        </section>
+
+        <!-- Basic Info -->
+        <section class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Basic Info</h2>
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="appName">App Name <span class="text-red-400">*</span></label>
+              <input type="text" id="appName" placeholder="My Awesome App" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1" for="shortName">Short Name</label>
+              <input type="text" id="shortName" placeholder="MyApp (max 12 chars)" maxlength="12" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1" for="description">Description</label>
+              <textarea id="description" rows="2" placeholder="A brief description of your app" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- URLs & Scope -->
+        <section class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">URLs</h2>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="startUrl">Start URL</label>
+            <input type="text" id="startUrl" placeholder="/" value="/" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="scope">Scope</label>
+            <input type="text" id="scope" placeholder="/" value="/" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="id">App ID <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
+            <input type="text" id="id" placeholder="com.example.myapp" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+          </div>
+        </section>
+
+        <!-- Display & Appearance -->
+        <section class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Display & Appearance</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="display">Display Mode</label>
+              <select id="display" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="standalone">standalone</option>
+                <option value="fullscreen">fullscreen</option>
+                <option value="minimal-ui">minimal-ui</option>
+                <option value="browser">browser</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1" for="orientation">Orientation</label>
+              <select id="orientation" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="any">any</option>
+                <option value="portrait">portrait</option>
+                <option value="landscape">landscape</option>
+                <option value="portrait-primary">portrait-primary</option>
+                <option value="landscape-primary">landscape-primary</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Theme Color</label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="themeColor" value="#6366f1" class="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700" />
+                <input type="text" id="themeColorHex" value="#6366f1" maxlength="7" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Background Color</label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="bgColor" value="#ffffff" class="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700" />
+                <input type="text" id="bgColorHex" value="#ffffff" maxlength="7" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="lang">Language</label>
+            <input type="text" id="lang" value="en" placeholder="en" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="dir">Text Direction</label>
+            <select id="dir" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="auto">auto</option>
+              <option value="ltr">ltr</option>
+              <option value="rtl">rtl</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Categories -->
+        <section class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Categories <span class="text-gray-400 text-xs font-normal">(optional)</span></h2>
+          <div class="flex flex-wrap gap-2 mb-2" id="categoryList"></div>
+          <div class="flex gap-2">
+            <select id="categorySelect" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="">Select category...</option>
+              <option>books</option><option>business</option><option>education</option>
+              <option>entertainment</option><option>finance</option><option>fitness</option>
+              <option>food</option><option>games</option><option>government</option>
+              <option>health</option><option>kids</option><option>lifestyle</option>
+              <option>magazines</option><option>medical</option><option>music</option>
+              <option>navigation</option><option>news</option><option>personalization</option>
+              <option>photo</option><option>politics</option><option>productivity</option>
+              <option>security</option><option>shopping</option><option>social</option>
+              <option>sports</option><option>travel</option><option>utilities</option>
+              <option>weather</option>
+            </select>
+            <button onclick="addCategory()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">Add</button>
+          </div>
+        </section>
+
+        <!-- Screenshots (optional) -->
+        <section class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Screenshots <span class="text-gray-400 text-xs font-normal">(optional)</span></h2>
+          <p class="text-xs text-gray-400 dark:text-gray-500">Add screenshot entries to the manifest (URLs only — no file generation).</p>
+          <div id="screenshotList" class="space-y-2"></div>
+          <button onclick="addScreenshot()" class="w-full px-4 py-2 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors">+ Add screenshot entry</button>
+        </section>
+
+        <!-- Generate Button -->
+        <button id="generateBtn" onclick="generate()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-base transition-colors shadow-sm">
+          Generate Files
+        </button>
+        <div id="errorMsg" class="hidden text-red-500 text-sm text-center mt-2"></div>
+
+      </div>
+
+      <!-- Right: Output -->
+      <div class="space-y-6">
+
+        <!-- Placeholder -->
+        <div id="outputPlaceholder" class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <svg class="w-16 h-16 mx-auto text-gray-200 dark:text-gray-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          <p class="text-gray-400 dark:text-gray-500 text-sm">Fill in the form and click <strong>Generate Files</strong></p>
+          <p class="text-gray-300 dark:text-gray-600 text-xs mt-1">Your manifest.json, icons, favicon, and HTML snippet will appear here</p>
+        </div>
+
+        <!-- Output Tabs -->
+        <div id="outputPanel" class="hidden space-y-4 lg:!mt-0">
+
+          <!-- Tabs -->
+          <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div class="flex border-b border-gray-200 dark:border-gray-800">
+              <button class="tab-btn tab-active px-4 py-3 text-sm font-medium" data-tab="manifest">manifest.json</button>
+              <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200" data-tab="html">HTML Snippet</button>
+              <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200" data-tab="icons">Icons</button>
+              <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200" data-tab="favicon">Favicon</button>
+            </div>
+
+            <!-- Manifest Tab -->
+            <div id="tab-manifest" class="tab-content p-4">
+              <div class="flex justify-between items-center mb-3">
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">manifest.json</span>
+                <div class="flex gap-2">
+                  <button onclick="copyToClipboard('manifestOutput')" class="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium">Copy</button>
+                  <button onclick="downloadManifest()" class="px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium">Download</button>
+                </div>
+              </div>
+              <pre id="manifestOutput" class="code-block text-xs bg-gray-50 dark:bg-gray-950 rounded-lg p-4 overflow-auto max-h-96 text-gray-800 dark:text-gray-200 whitespace-pre"></pre>
+            </div>
+
+            <!-- HTML Snippet Tab -->
+            <div id="tab-html" class="tab-content hidden p-4">
+              <div class="flex justify-between items-center mb-3">
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">Add to &lt;head&gt;</span>
+                <button onclick="copyToClipboard('htmlOutput')" class="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium">Copy</button>
+              </div>
+              <pre id="htmlOutput" class="code-block text-xs bg-gray-50 dark:bg-gray-950 rounded-lg p-4 overflow-auto max-h-96 text-gray-800 dark:text-gray-200 whitespace-pre"></pre>
+            </div>
+
+            <!-- Icons Tab -->
+            <div id="tab-icons" class="tab-content hidden p-4 space-y-5">
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">All icon sets</span>
+                <button onclick="downloadAllIcons()" class="px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium">Download All (ZIP)</button>
+              </div>
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Standard PWA Icons</p>
+                <div id="iconsGrid" class="grid grid-cols-3 gap-3"></div>
+              </div>
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">Maskable Icons <span class="normal-case font-normal">(Android adaptive)</span></p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">Artwork is scaled to 80% with your background color filling the safe zone, so shape masks never clip content.</p>
+                <div id="maskableIconsGrid" class="grid grid-cols-3 gap-3"></div>
+              </div>
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">Apple Touch Icons <span class="normal-case font-normal">(iOS Safari)</span></p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">iOS Safari does not read the manifest icons array — these files are required for proper home screen icons on iPhone and iPad.</p>
+                <div id="appleIconsGrid" class="grid grid-cols-3 gap-3"></div>
+              </div>
+            </div>
+
+            <!-- Favicon Tab -->
+            <div id="tab-favicon" class="tab-content hidden p-4">
+              <div class="flex justify-between items-center mb-4">
+                <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">favicon.ico (multi-size: 16, 32, 48px)</span>
+                <button onclick="downloadFavicon()" class="px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium">Download favicon.ico</button>
+              </div>
+              <div class="flex items-end gap-6 p-4 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                <div class="text-center">
+                  <canvas id="favicon16" width="16" height="16" class="block mx-auto mb-1" style="image-rendering: pixelated; width: 32px; height: 32px;"></canvas>
+                  <span class="text-xs text-gray-400">16×16</span>
+                </div>
+                <div class="text-center">
+                  <canvas id="favicon32" width="32" height="32" class="block mx-auto mb-1" style="image-rendering: pixelated; width: 48px; height: 48px;"></canvas>
+                  <span class="text-xs text-gray-400">32×32</span>
+                </div>
+                <div class="text-center">
+                  <canvas id="favicon48" width="48" height="48" class="block mx-auto mb-1" style="image-rendering: pixelated; width: 64px; height: 64px;"></canvas>
+                  <span class="text-xs text-gray-400">48×48</span>
+                </div>
+                <div class="text-center">
+                  <canvas id="favicon192" width="192" height="192" class="block mx-auto mb-1" style="width: 96px; height: 96px;"></canvas>
+                  <span class="text-xs text-gray-400">192×192</span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">The downloaded <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">favicon.ico</code> is a proper multi-resolution ICO file containing 16×16, 32×32, and 48×48 variants.</p>
+            </div>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
+              <div class="text-2xl font-bold text-indigo-600" id="summaryIconCount">0</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Icons</div>
+            </div>
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
+              <div class="text-2xl font-bold text-indigo-600">1</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">manifest.json</div>
+            </div>
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
+              <div class="text-2xl font-bold text-indigo-600">1</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">favicon.ico</div>
+            </div>
+          </div>
+
+          <!-- Download All -->
+          <button onclick="downloadAll()" class="w-full py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-semibold text-base transition-colors shadow-sm">
+            Download Everything (ZIP)
+          </button>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center py-6 mt-4 text-xs text-gray-400 dark:text-gray-600">
+    Coded with ❤️ and ☕️ by Tamas Kecskes
+  </footer>
+
+  <!-- Copy toast -->
+  <div id="copyToast" class="fixed bottom-6 right-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg opacity-0 transition-opacity pointer-events-none">
+    Copied to clipboard
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
