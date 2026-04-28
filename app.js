@@ -82,26 +82,44 @@ function addScreenshot() {
   const id = ++screenshotCount;
   const row = document.createElement('div');
   row.id = `screenshot-${id}`;
-  row.className = 'grid grid-cols-12 gap-2 items-start';
+  row.className = 'flex gap-2 items-center';
   row.innerHTML = `
-    <input type="text" placeholder="URL" class="col-span-6 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" data-ss-url />
-    <select class="col-span-3 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" data-ss-form>
+    <label class="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors min-w-0">
+      <input type="file" accept="image/*" class="hidden" data-ss-file onchange="handleScreenshotFile(this, ${id})" />
+      <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <span id="ss-name-${id}" class="text-xs text-gray-400 dark:text-gray-500 truncate">Choose screenshot…</span>
+    </label>
+    <select class="px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0" data-ss-form>
       <option value="narrow">narrow</option>
       <option value="wide">wide</option>
     </select>
-    <input type="text" placeholder="label" class="col-span-2 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" data-ss-label />
-    <button onclick="document.getElementById('screenshot-${id}').remove()" class="col-span-1 text-gray-400 hover:text-red-500 text-lg leading-none pt-1">×</button>
+    <input type="text" placeholder="label" class="w-20 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0" data-ss-label />
+    <button onclick="document.getElementById('screenshot-${id}').remove()" class="text-gray-400 hover:text-red-500 text-lg leading-none flex-shrink-0">×</button>
   `;
   list.appendChild(row);
 }
 
+function handleScreenshotFile(input, id) {
+  const file = input.files[0];
+  if (!file) return;
+  const nameEl = document.getElementById(`ss-name-${id}`);
+  nameEl.textContent = file.name;
+  nameEl.classList.remove('text-gray-400', 'dark:text-gray-500');
+  nameEl.classList.add('text-gray-700', 'dark:text-gray-300');
+}
+
 function getScreenshots() {
-  return Array.from(document.querySelectorAll('[id^="screenshot-"]')).map(row => {
-    const url = row.querySelector('[data-ss-url]').value.trim();
+  return Array.from(document.querySelectorAll('[id^="screenshot-"]')).map((row, i) => {
+    const input = row.querySelector('[data-ss-file]');
+    const file = input?.files[0];
+    if (!file) return null;
+    const ext = file.name.split('.').pop().toLowerCase() || 'png';
+    const filename = `screenshot-${i + 1}.${ext}`;
     const form_factor = row.querySelector('[data-ss-form]').value;
     const label = row.querySelector('[data-ss-label]').value.trim();
-    if (!url) return null;
-    const entry = { src: url, form_factor };
+    const entry = { file, filename, src: `screenshots/${filename}`, form_factor };
     if (label) entry.label = label;
     return entry;
   }).filter(Boolean);
@@ -264,6 +282,7 @@ let generatedIcoBlob = null;
 let generatedIconCanvases = {};
 let generatedMaskableCanvases = {};
 let generatedAppleCanvases = {};
+let generatedScreenshots = [];
 
 // ─── Generate ─────────────────────────────────────────────────────────────────
 async function generate() {
@@ -351,8 +370,14 @@ async function generate() {
       manifest.categories = Array.from(selectedCategories);
     }
 
-    const screenshots = getScreenshots();
-    if (screenshots.length > 0) manifest.screenshots = screenshots;
+    generatedScreenshots = getScreenshots();
+    if (generatedScreenshots.length > 0) {
+      manifest.screenshots = generatedScreenshots.map(({ src, form_factor, label }) => {
+        const entry = { src, form_factor };
+        if (label) entry.label = label;
+        return entry;
+      });
+    }
 
     generatedManifest = manifest;
 
@@ -611,6 +636,14 @@ async function downloadAll() {
   // favicon.ico
   if (generatedIcoBlob) {
     zip.file('favicon.ico', await generatedIcoBlob.arrayBuffer());
+  }
+
+  // Screenshots
+  if (generatedScreenshots.length > 0) {
+    const ssFolder = zip.folder('screenshots');
+    await Promise.all(generatedScreenshots.map(ss =>
+      ss.file.arrayBuffer().then(buf => ssFolder.file(ss.filename, buf))
+    ));
   }
 
   const blob = await zip.generateAsync({ type: 'blob' });
